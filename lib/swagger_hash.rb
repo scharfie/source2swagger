@@ -26,17 +26,11 @@ class SwaggerHash < Hash
         if not method == :add
           self[method] = SwaggerHash.new
         else
-          if (args.nil? || args.empty?)
-            self[:_array] ||= Array.new 
-            item = SwaggerHash.new
-            self[:_array] << item
-            return item
-          else
-            self[:_array] ||= Array.new
-            args.each do |item|
-              self[:_array] << item
-            end
-          end
+          item = SwaggerHash.new
+          item.set(args.first) if args.any?
+          self[:_array] ||= Array.new 
+          self[:_array] << item
+          return item
         end
       end
       return self[method]
