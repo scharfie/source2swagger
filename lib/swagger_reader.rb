@@ -80,7 +80,7 @@ class SwaggerReader
         v << "source2swagger.namespaces.each {|k,v| out[k] = v.to_hash}"
         str=v.join(";")
         proc do 
-          $SAFE = 4
+          # $SAFE = 4
           eval(str)
         end.call
       rescue Exception => e
