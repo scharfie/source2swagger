@@ -92,7 +92,7 @@ class SwaggerReader
     code[:code] << "source2swagger.namespaces.each {|k,v| out[k] = v.to_hash}"
     str = code[:code].join(";")
     res = proc do 
-      $SAFE = 4
+      # $SAFE = 4
       eval(str)
     end.call
     
