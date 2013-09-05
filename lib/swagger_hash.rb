@@ -1,8 +1,11 @@
-
 class SwaggerHash < Hash
   
-  KEEP_METHODS = %w{default []= each merge! debugger puts __id__ __send__ instance_eval == equal? initialize delegate caller object_id raise class [] to_json inspect to_s new nil?}
-  ((private_instance_methods + instance_methods).map(&:to_sym) - KEEP_METHODS.map(&:to_sym)).each{|m| undef_method(m) }
+  # KEEP_METHODS = %w{default []= each merge! debugger puts __id__ __send__ instance_eval == equal? initialize delegate caller object_id raise class [] to_json inspect to_s new nil?}
+  # ((private_instance_methods + instance_methods).map(&:to_sym) - KEEP_METHODS.map(&:to_sym)).each{|m| undef_method(m) }
+  
+  # def default(key)
+  #   self[key] = SwaggerHash.new
+  # end
     
   def initialize
     @namespaces = Hash.new
@@ -18,21 +21,27 @@ class SwaggerHash < Hash
   end
 
   def method_missing(method, *args, &block)
-
     if method.to_s.match(/=$/)
-      self[method.to_s.gsub("=","").to_sym] = args.first
+      key = method.to_s.gsub("=","").to_sym 
+      self[key] = args.first
     else
       if self[method].nil?
-        if not method == :add
-          self[method] = SwaggerHash.new
+        if method != :add
+          result = SwaggerHash.new
+          block.call(result) if block
+          self[method] = result
         else
-          item = SwaggerHash.new
-          item.set(args.first) if args.any?
+          result = SwaggerHash.new
+          result.set(args.last) if args.any?
+          block.call(result) if block
+
           self[:_array] ||= Array.new 
-          self[:_array] << item
-          return item
+          self[:_array] << result
+
+          return result
         end
       end
+
       return self[method]
     end
   end

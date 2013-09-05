@@ -1,19 +1,22 @@
+require 'erb'
 
 class SwaggerReader
 
   def analyze_file(file, comment_str)
-
     code = {:code => [], :line_number => [], :file =>[]}
+    pattern = /\s*#{comment_str}(.*)/
 
     File.open(file,"r") do |f|
       line_number = 1
       while (line = f.gets)
-        v = line.strip.split(" ")
-        if !v.nil? && v.size > 0 && (v[0]==comment_str)   
-          code[:code] << v[1..v.size].join(" ")
+
+        if line =~ pattern
+          source = $1
+          code[:code] << source
           code[:file] << file
           code[:line_number] << line_number
         end
+
         line_number = line_number + 1
       end
     end 
@@ -46,13 +49,12 @@ class SwaggerReader
 
     cont = 0
     code[:code].each do |code_line|
-      code_line.strip!      
-      if code_line[0]=="@"[0]
-        tmp_vars[:code] << code_line.gsub(/@(?=([^"]*"[^"]*")*[^"]*$)/," ")
+      if code_line =~ /^\s*@/
+        tmp_vars[:code] << code_line#.gsub(/@(?=([^"]*"[^"]*")*[^"]*$)/," ")
         tmp_vars[:line_number] << code[:line_number][cont]
         tmp_vars[:file] << code[:file][cont]
       else
-        tmp_not_vars[:code] << code_line.gsub(/@(?=([^"]*"[^"]*")*[^"]*$)/," ")
+        tmp_not_vars[:code] << code_line#.gsub(/@(?=([^"]*"[^"]*")*[^"]*$)/," ")
         tmp_not_vars[:line_number] << code[:line_number][cont]
         tmp_not_vars[:file] << code[:file][cont]
       end
@@ -62,42 +64,52 @@ class SwaggerReader
     res = {:code => tmp_vars[:code] + tmp_not_vars[:code], :line_number => tmp_vars[:line_number] + tmp_not_vars[:line_number], :file => tmp_vars[:file] + tmp_not_vars[:file]}
 
     return res
-
   end
 
  
   def process_code(code)
 
+    @swagger_namespaces = nil
+
     code = sort_for_vars_declaration(code)
 
     code[:code].insert(0,"source2swagger = SwaggerHash.new")
+    code[:code] << "@swagger_namespaces = {}"
+    code[:code] << "source2swagger.namespaces.each {|k,v| @swagger_namespaces[k] = v.to_hash}"
+    str = code[:code].join("\n")
 
-    code[:code].size.times do |cont|
-      
-      begin
-        v = code[:code][0..cont]
-        v << "out = {:apis => []}"
-        v << "source2swagger.namespaces.each {|k,v| out[k] = v.to_hash}"
-        str=v.join(";")
-        proc do 
-          # $SAFE = 4
-          eval(str)
-        end.call
-      rescue Exception => e
-        raise SwaggerReaderException, "Error parsing source files at #{code[:file][cont-1]}:#{code[:line_number][cont-1]}\n#{e.inspect}"
+    begin
+      str = code[:code].map { |line| "<% #{line} %>" }.join("\n")
+
+      File.open('source.rb', 'w') do |f|
+        f.puts('require "swagger_hash"')
+        f.puts(code[:code].join("\n"))
       end
-    end
-    
-    code[:code] << "out = {:apis => []}"
-    code[:code] << "source2swagger.namespaces.each {|k,v| out[k] = v.to_hash}"
-    str = code[:code].join(";")
-    res = proc do 
-      # $SAFE = 4
-      eval(str)
-    end.call
-    
-    raise SwaggerReaderException, "Error on the evaluation of the code in docs: #{res}" unless res.class==Hash
+
+      ERB.new(str).result(binding)
+
+      res = @swagger_namespaces
+
+    rescue Exception => exception
+      error_line = exception.backtrace.first.scan(/\(erb\):(\d+)/).flatten.first.to_i
+      context_size = 10
+      start_line = [0, error_line - context_size].max
+      end_line = error_line + context_size
+
+      snippet = code[:code][start_line..end_line].enum_with_index.map do |e, number|
+        number += start_line + 1
+        marker = number == error_line ? '=>' : '  '
+        
+        "%s %4d)  %s" % [marker, number, e]
+      end.join("\n")
       
+      raise SwaggerReaderException, "Error evaluating: #{exception.message}\n\n#{snippet}\n"
+
+      # raise e.to_yaml
+      # puts e.backtrace.join("\n")
+      # raise SwaggerReaderException, "Error on the evaluation of the code in docs: #{res}\n#{str}\n#{e.inspect}" unless res.class==Hash
+    end
+
     res.each do |k, v|
       res[k] = v.to_hash
     end
