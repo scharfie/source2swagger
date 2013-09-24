@@ -68,6 +68,8 @@ unless ((opt_extension and opt_input and opt_comment) || (opt_filename and opt_c
 end
  
 def save(results, output_path)
+  FileUtils.mkdir_p(output_path) unless File.directory?(output_path)
+
   results.each do |k,v|
     puts "  Saving API #{k} to #{output_path}/#{k}.json" 
     File.new("#{output_path}/#{k}.json","w").puts v.to_json
