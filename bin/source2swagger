@@ -22,6 +22,8 @@ opt_output = nil
 opt_comment = nil
 opt_extension = nil
 opt_filename = nil
+options = {}
+
 
 parser = OptionParser.new do |parser|
   parser.on('-i','--input PATH', 'Directory of the annotated source code') do |value|
@@ -42,6 +44,10 @@ parser = OptionParser.new do |parser|
 
   parser.on('-o','--output PATH','Directory where the json output will be saved (optional)') do |value|
     opt_output = value
+  end
+
+  parser.on('-b', '--base-url URL', 'Sets base URL') do |value|
+    options[:base_url] = value
   end
 
   begin
@@ -77,8 +83,9 @@ def print(results)
   end
 end
 
-def run(input, extension, comment, output, filename)
+def run(input, extension, comment, output, filename, options={})
   reader = SwaggerReader.new
+  reader.options = options
   $_swaggerhash = Hash.new
 
   if filename.nil?
@@ -111,4 +118,4 @@ def run(input, extension, comment, output, filename)
 end
 
 
-run(opt_input, opt_extension, opt_comment, opt_output, opt_filename)
+run(opt_input, opt_extension, opt_comment, opt_output, opt_filename, options)

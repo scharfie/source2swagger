@@ -1,6 +1,7 @@
 require 'erb'
 
 class SwaggerReader
+  attr_accessor :options
 
   def analyze_file(file, comment_str)
     code = {:code => [], :line_number => [], :file =>[]}
