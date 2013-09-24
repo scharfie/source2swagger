@@ -6,13 +6,21 @@ class SwaggerReader
   def analyze_file(file, comment_str)
     code = {:code => [], :line_number => [], :file =>[]}
     pattern = /\s*#{comment_str}(.*)/
+    in_block = false
+
+    block_start = /^=begin SWAGGER/
+    block_end   = /^=end SWAGGER/
 
     File.open(file,"r") do |f|
       line_number = 1
-      while (line = f.gets)
 
-        if line =~ pattern
-          source = $1
+      while (line = f.gets)
+        if line =~ block_start
+          in_block = true
+        elsif line =~ block_end
+          in_block = false
+        elsif in_block || line =~ pattern
+          source = in_block ? line : $1
           code[:code] << source
           code[:file] << file
           code[:line_number] << line_number
@@ -80,7 +88,8 @@ class SwaggerReader
     str = code[:code].join("\n")
 
     begin
-      str = code[:code].map { |line| "<% #{line} %>" }.join("\n")
+      # str = code[:code].map { |line| "<% #{line} %>" }.join("\n")
+      str = "<%\n" + code[:code].join("\n") + "\n%>"
 
       File.open('source.rb', 'w') do |f|
         f.puts('require "swagger_hash"')
