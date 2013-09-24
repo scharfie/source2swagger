@@ -106,12 +106,18 @@ class SwaggerReader
       start_line = [0, error_line - context_size].max
       end_line = error_line + context_size
 
-      snippet = code[:code][start_line..end_line].enum_with_index.map do |e, number|
-        number += start_line + 1
-        marker = number == error_line ? '=>' : '  '
-        
-        "%s %4d)  %s" % [marker, number, e]
-      end.join("\n")
+      snippet_lines = code[:code][start_line..end_line]
+      
+      if snippet_lines
+        snippet.enum_with_index.map do |e, number|
+          number += start_line + 1
+          marker = number == error_line ? '=>' : '  '
+          
+          "%s %4d)  %s" % [marker, number, e]
+        end.join("\n")
+      else
+        snippet = exception.backtrace
+      end
       
       raise SwaggerReaderException, "Error evaluating: #{exception.message}\n\n#{snippet}\n"
 

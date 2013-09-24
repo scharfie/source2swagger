@@ -7,8 +7,13 @@ class SwaggerHash < Hash
   #   self[key] = SwaggerHash.new
   # end
     
-  def initialize
+  def initialize(properties={})
     @namespaces = Hash.new
+
+    properties.each do |key, value|
+      send "#{key}=", value
+    end
+
     ##super
   end
 
@@ -69,5 +74,36 @@ class SwaggerHash < Hash
     end
     return h2
   end
+
+  # model extensions
+  def model(name, &block)
+    result = models[name] = SwaggerHash::Model.new(
+      :id => name
+    )
+
+    block.call(result) if block
+    result
+  end
  
+end
+
+class SwaggerHash::Model < SwaggerHash
+  def property(name, type)
+    properties[name] = SwaggerHash::ModelProperty.new(
+      :type => type
+    )
+  end
+
+  def array(name, type)
+    properties[name] = SwaggerHash::ModelProperty.new(
+      :type => "array",
+      :items =>  {
+        "$ref" => type
+      }
+    )
+  end
+end
+
+class SwaggerHash::ModelProperty < SwaggerHash
+
 end
