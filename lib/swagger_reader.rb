@@ -109,7 +109,7 @@ class SwaggerReader
       snippet_lines = code[:code][start_line..end_line]
       
       if snippet_lines
-        snippet.enum_with_index.map do |e, number|
+        snippet = snippet_lines.enum_with_index.map do |e, number|
           number += start_line + 1
           marker = number == error_line ? '=>' : '  '
           

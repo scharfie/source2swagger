@@ -88,13 +88,23 @@ class SwaggerHash < Hash
 end
 
 class SwaggerHash::Model < SwaggerHash
-  def property(name, type)
-    properties[name] = SwaggerHash::ModelProperty.new(
-      :type => type
+  def property(name, type, options={})
+    result = properties[name] = SwaggerHash::ModelProperty.new(
+      { :type => type }.merge(options)
     )
+
+    result
   end
 
-  def array(name, type)
+  def string(name, options={})
+    property(name, :string, options)
+  end
+
+  def integer(name, options={})
+    property(name, :integer, options)
+  end
+
+  def array(name, type, options={})
     properties[name] = SwaggerHash::ModelProperty.new(
       :type => "array",
       :items =>  {
