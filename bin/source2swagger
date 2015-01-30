@@ -2,6 +2,7 @@
 
 require 'optparse'
 require "json"
+require 'fileutils'
 
 begin
   require "swagger_hash"
@@ -22,7 +23,9 @@ opt_output = nil
 opt_comment = nil
 opt_extension = nil
 opt_filename = nil
-options = {}
+options = {
+  :base_url => ""
+}
 
 
 parser = OptionParser.new do |parser|
@@ -46,7 +49,7 @@ parser = OptionParser.new do |parser|
     opt_output = value
   end
 
-  parser.on('-b', '--base-url URL', 'Sets base URL') do |value|
+  parser.on('-b', '--base-url [URL]', 'Sets base URL') do |value|
     options[:base_url] = value
   end
 
